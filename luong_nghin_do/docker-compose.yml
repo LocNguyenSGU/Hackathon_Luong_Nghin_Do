@@ -1,0 +1,26 @@
+version: '3'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: mysql_container
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 12345abc
+      MYSQL_DATABASE: hackathon
+    ports:
+      - "3306:3306"
+
+  web:
+    build: .
+    container_name: django_container
+    restart: always
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=db
+      - DB_NAME=hackathon
+      - DB_USER=root
+      - DB_PASS=12345abc
