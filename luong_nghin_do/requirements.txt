@@ -6,3 +6,4 @@ python-pptx
 speechrecognition 
 pydub
 gTTS
+openai
