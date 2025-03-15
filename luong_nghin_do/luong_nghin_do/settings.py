@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'file_reader',
     'speech_to_text',
     'text_to_speech',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
@@ -53,8 +54,11 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "corsheaders.middleware.CorsMiddleware",  
+    "django.middleware.common.CommonMiddleware",
+    
 ]
-
+CORS_ALLOW_ALL_ORIGINS = True
 ROOT_URLCONF = 'luong_nghin_do.urls'
 
 TEMPLATES = [
@@ -84,7 +88,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'hackathon',
         'USER': 'root',
-        'PASSWORD': '',
+        'PASSWORD': '12345abc',
         'HOST': 'localhost',  # Tên service trong docker-compose
         'PORT': '3306',
     }
