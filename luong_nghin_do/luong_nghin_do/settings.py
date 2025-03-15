@@ -21,7 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-ktz+j4loh8ys_evume0pcz5mit^tceidl8c!=$1r7e&hd_yyan'
-OPENAI_API_KEY = "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"
+OPENAI_API_KEY = ""
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -46,20 +46,23 @@ INSTALLED_APPS = [
     'corsheaders',
 ]
 
+
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",  # ✅ CORS phải đặt ĐẦU TIÊN
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    "corsheaders.middleware.CorsMiddleware",  
-    "django.middleware.common.CommonMiddleware",
-    
 ]
-CORS_ALLOW_ALL_ORIGINS = True
+    
+CORS_ALLOW_CREDENTIALS = True
+CSRF_COOKIE_HTTPONLY = False  # Để frontend có thể truy cập CSRF token
+CSRF_COOKIE_SAMESITE = "None"
 ROOT_URLCONF = 'luong_nghin_do.urls'
+CORS_ALLOW_ALL_ORIGINS = True
+
 
 TEMPLATES = [
     {
