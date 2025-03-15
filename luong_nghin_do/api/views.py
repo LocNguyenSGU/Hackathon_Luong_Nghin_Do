@@ -235,6 +235,11 @@ def generate_exercises(request):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
+
+import logging
+
+logger = logging.getLogger(__name__)  # 📌 Khởi tạo logger
+
 @csrf_exempt
 def summarize_text(request):
     """
@@ -251,32 +256,57 @@ def summarize_text(request):
         if not input_text:
             return JsonResponse({"error": "Vui lòng nhập văn bản!"}, status=400)
 
-        # 📌 Prompt tóm tắt văn bản bình thường
+        # 📌 Prompt tóm tắt văn bản + tạo tiêu đề
         prompt = f"""
-        Hãy tóm tắt nội dung sau một cách súc tích và dễ hiểu:
+        Hãy tóm tắt nội dung sau một cách súc tích và dễ hiểu.
 
-        {input_text}
+        Văn bản: {input_text}
 
-        Trả về kết quả dưới dạng văn bản ngắn gọn, dễ hiểu.
+        Trả về kết quả dưới dạng JSON với đúng cấu trúc sau:
+        {{
+            "title": "Tiêu đề ngắn (2-4 chữ)",
+            "summary": "Phần tóm tắt nội dung chính, dễ hiểu"
+        }}
+        Chỉ trả về JSON hợp lệ, không có văn bản nào khác.
         """
 
         # 📌 Gửi yêu cầu đến OpenAI API
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=500  # Giới hạn độ dài tóm tắt
+            max_tokens=300,  # Giới hạn độ dài tóm tắt
+            response_format={"type": "json_object"}  # ✅ Định dạng đúng kiểu JSON
         )
 
-        # 📌 Lấy nội dung phản hồi từ API
-        summary_text = response.choices[0].message.content.strip()
+        # 📌 Ghi log phản hồi gốc từ OpenAI
+        logger.info(f"🔹 Response từ AI: {response}")
 
-        return JsonResponse({"status": "success", "summary": summary_text}, json_dumps_params={'ensure_ascii': False})
+        # 📌 Lấy nội dung phản hồi (chuỗi JSON)
+        response_data = response.choices[0].message.content
+        logger.info(f"🔹 Nội dung phản hồi AI: {response_data}")  # Log chi tiết phản hồi
+
+        # 📌 Chuyển chuỗi JSON thành dictionary
+        try:
+            parsed_data = json.loads(response_data)
+            title = parsed_data.get("title", "").strip()
+            summary = parsed_data.get("summary", "").strip()
+        except json.JSONDecodeError:
+            logger.error("⚠️ Phản hồi từ AI không phải JSON hợp lệ!")  # Ghi log lỗi
+            return JsonResponse({"error": "Phản hồi từ AI không phải JSON hợp lệ"}, status=500)
+
+        return JsonResponse({
+            "status": "success",
+            "title": title,
+            "summary": summary
+        }, json_dumps_params={'ensure_ascii': False})
 
     except json.JSONDecodeError:
+        logger.error("⚠️ Lỗi JSON từ request!")  # Ghi log lỗi JSON
         return JsonResponse({"error": "Invalid JSON format"}, status=400)
     except Exception as e:
+        logger.exception(f"⚠️ Lỗi không xác định: {str(e)}")  # Ghi log lỗi chi tiết
         return JsonResponse({"error": str(e)}, status=500)
-
+      
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)      
       
