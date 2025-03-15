@@ -2,11 +2,13 @@ import os
 import fitz  # PyMuPDF
 import docx
 import pptx
+import cloudinary.uploader
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.core.files.storage import default_storage
 from django.conf import settings
+
 class FileUploadAPIView(APIView):
     parser_classes = (MultiPartParser, FormParser)
 
@@ -57,3 +59,12 @@ class FileUploadAPIView(APIView):
                 if hasattr(shape, "text"):
                     text.append(shape.text)
         return "\n".join(text)
+class UploadImageView(APIView):
+    parser_classes = (MultiPartParser, FormParser)
+
+    def post(self, request, *args, **kwargs):
+        file = request.FILES.get('file')
+        if file:
+            upload_result = cloudinary.uploader.upload(file)
+            return Response({'url': upload_result['secure_url']})
+        return Response({'error': 'No file provided'}, status=400)

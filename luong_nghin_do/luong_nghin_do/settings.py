@@ -54,7 +54,21 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': 'doycy5gbl',
+    'API_KEY': '142539132518888',
+    'API_SECRET': 'H-nn9ZrUNVyE4K3iDZWBQ7dXJKo',
+}
+
+cloudinary.config(
+    cloud_name=CLOUDINARY_STORAGE['CLOUD_NAME'],
+    api_key=CLOUDINARY_STORAGE['API_KEY'],
+    api_secret=CLOUDINARY_STORAGE['API_SECRET']
+)
 ROOT_URLCONF = 'luong_nghin_do.urls'
 
 TEMPLATES = [

@@ -1,5 +1,6 @@
 from django.db import models
-
+import cloudinary
+import cloudinary.models
 class UserDetail(models.Model):
     idUser = models.AutoField(primary_key=True)
     email = models.EmailField(unique=True)
@@ -38,3 +39,6 @@ class DanhGia(models.Model):
 
     def __str__(self):
         return f"Đánh giá từ {self.idUser} về {self.idChuDe}"
+class ImageUpload(models.Model):
+    image = cloudinary.models.CloudinaryField('image')
+    uploaded_at = models.DateTimeField(auto_now_add=True)

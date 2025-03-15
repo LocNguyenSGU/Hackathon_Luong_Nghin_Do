@@ -1,5 +1,6 @@
 django
-djangorestframeworkmysqlclient
+djangorestframework
+mysqlclient
 python-docx 
 pymupdf 
 python-pptx
@@ -7,3 +8,4 @@ speechrecognition
 pydub
 gTTS
 openai
+cloudinary
