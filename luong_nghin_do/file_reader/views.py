@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.core.files.storage import default_storage
-
+from django.conf import settings
 class FileUploadAPIView(APIView):
     parser_classes = (MultiPartParser, FormParser)
 
@@ -20,7 +20,9 @@ class FileUploadAPIView(APIView):
 
         # Lưu file tạm thời
         file_path = default_storage.save(file.name, file)
+        full_file_path = default_storage.path(file_path)
 
+        print(f"📂 File path: {full_file_path}")  # Debug
         try:
             if file_ext == ".pdf":
                 text = self.read_pdf(file_path)

@@ -39,6 +39,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'api',
     'rest_framework',
+    'file_reader',
+    'speech_to_text',
+    'text_to_speech',
 ]
 
 MIDDLEWARE = [
@@ -80,7 +83,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'hackathon',
         'USER': 'root',
-        'PASSWORD': '12345abc',
+        'PASSWORD': '',
         'HOST': 'localhost',  # Tên service trong docker-compose
         'PORT': '3306',
     }
