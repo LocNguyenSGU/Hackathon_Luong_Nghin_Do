@@ -141,6 +141,140 @@ def summarize_text_hierarchical(request):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
+@csrf_exempt
+def generate_exercises(request):
+    """
+    API nhận văn bản và loại bài tập (multiple_choice, fill_in_the_blank, short_answer)
+    và tạo bài tập tương ứng.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid request method"}, status=400)
+
+    try:
+        # 🔹 Nhận dữ liệu từ body JSON
+        data = json.loads(request.body)
+        text = data.get("text", "").strip()
+        exercise_type = data.get("type", "").strip().lower()  # Loại bài tập
+
+        if not text:
+            return JsonResponse({"error": "Vui lòng nhập nội dung để tạo bài tập"}, status=400)
+
+        if exercise_type not in ["multiple_choice", "fill_in_the_blank", "short_answer"]:
+            return JsonResponse({"error": "Loại bài tập không hợp lệ"}, status=400)
+
+        # 📌 Tạo prompt tương ứng với từng loại bài tập
+        if exercise_type == "multiple_choice":
+            prompt = f"""
+            Tạo nhiều bài tập trắc nghiệm (multiple choice) dựa trên nội dung sau:
+            
+            {text}
+            
+            Xuất ra JSON dạng sau:
+            ```json
+            {{
+              "type": "multiple_choice",
+              "question": "Câu hỏi?",
+              "options": ["A", "B", "C", "D"],
+              "correct_answer": "Đáp án đúng"
+            }}
+            ```
+            Chỉ trả về JSON hợp lệ.
+            """
+
+        elif exercise_type == "fill_in_the_blank":
+            prompt = f"""
+            Tạo nhiều bài tập điền vào chỗ trống (fill in the blank) dựa trên nội dung sau:
+            
+            {text}
+            
+            Xuất ra JSON dạng sau:
+            ```json
+            {{
+              "type": "fill_in_the_blank",
+              "question": "Câu này có một từ bị thiếu: _____ là một công nghệ AI.",
+              "correct_answer": "Học máy"
+            }}
+            ```
+            Chỉ trả về JSON hợp lệ.
+            """
+
+        elif exercise_type == "short_answer":
+            prompt = f"""
+            Tạo nhiều câu hỏi tự luận ngắn (short answer) dựa trên nội dung sau:
+            
+            {text}
+            
+            Xuất ra JSON dạng sau:
+            ```json
+            {{
+              "type": "short_answer",
+              "question": "Học máy là gì?"
+            }}
+            ```
+            Chỉ trả về JSON hợp lệ.
+            """
+
+        # 📌 Gửi yêu cầu lên OpenAI API
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=500
+        )
+
+        # 🔹 Lấy kết quả từ OpenAI và xử lý JSON
+        exercises_json = response.choices[0].message.content.strip()
+        exercises_json_cleaned = re.sub(r"```json|```", "", exercises_json).strip()
+        exercises_dict = json.loads(exercises_json_cleaned)
+
+        return JsonResponse({"status": "success", "exercise": exercises_dict}, json_dumps_params={'ensure_ascii': False})
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Phản hồi từ OpenAI không đúng JSON"}, status=500)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+@csrf_exempt
+def summarize_text(request):
+    """
+    API nhận văn bản dài từ request, gửi đến OpenAI và trả về nội dung đã được tóm tắt.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid request method"}, status=400)
+
+    try:
+        # 📌 Lấy nội dung từ request
+        data = json.loads(request.body)
+        input_text = data.get("text", "").strip()
+
+        if not input_text:
+            return JsonResponse({"error": "Vui lòng nhập văn bản!"}, status=400)
+
+        # 📌 Prompt tóm tắt văn bản bình thường
+        prompt = f"""
+        Hãy tóm tắt nội dung sau một cách súc tích và dễ hiểu:
+
+        {input_text}
+
+        Trả về kết quả dưới dạng văn bản ngắn gọn, dễ hiểu.
+        """
+
+        # 📌 Gửi yêu cầu đến OpenAI API
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=500  # Giới hạn độ dài tóm tắt
+        )
+
+        # 📌 Lấy nội dung phản hồi từ API
+        summary_text = response.choices[0].message.content.strip()
+
+        return JsonResponse({"status": "success", "summary": summary_text}, json_dumps_params={'ensure_ascii': False})
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON format"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
 
 from rest_framework import viewsets
 from .models import UserDetail, ChuDe, File, DanhGia

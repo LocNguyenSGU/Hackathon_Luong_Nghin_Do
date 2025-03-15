@@ -1,6 +1,9 @@
 django
 djangorestframework
 mysqlclient
+openai
+djangorestframework
+mysqlclient
 python-docx 
 pymupdf 
 python-pptx
@@ -9,3 +12,4 @@ pydub
 gTTS
 openai
 cloudinary
+django-cors-headers
