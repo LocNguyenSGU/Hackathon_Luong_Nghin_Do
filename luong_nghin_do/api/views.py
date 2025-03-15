@@ -138,3 +138,24 @@ def summarize_text_hierarchical(request):
         return JsonResponse({"error": "Invalid JSON format"}, status=400)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+
+from rest_framework import viewsets
+from .models import UserDetail, ChuDe, File, DanhGia
+from .serializers import UserDetailSerializer, ChuDeSerializer, FileSerializer, DanhGiaSerializer
+
+class UserDetailViewSet(viewsets.ModelViewSet):
+    queryset = UserDetail.objects.all()
+    serializer_class = UserDetailSerializer
+
+class ChuDeViewSet(viewsets.ModelViewSet):
+    queryset = ChuDe.objects.all()
+    serializer_class = ChuDeSerializer
+
+class FileViewSet(viewsets.ModelViewSet):
+    queryset = File.objects.all()
+    serializer_class = FileSerializer
+
+class DanhGiaViewSet(viewsets.ModelViewSet):
+    queryset = DanhGia.objects.all()
+    serializer_class = DanhGiaSerializer
