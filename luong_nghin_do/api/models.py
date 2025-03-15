@@ -35,6 +35,7 @@ class DanhGia(models.Model):
     id = models.AutoField(primary_key=True)
     idChuDe = models.ForeignKey(ChuDe, on_delete=models.CASCADE)
     idUser = models.ForeignKey(UserDetail, on_delete=models.CASCADE)
+    idThread = models.CharField(max_length=255, unique=True, null=True, blank=True) 
     nhan_xet = models.TextField()
 
     def __str__(self):

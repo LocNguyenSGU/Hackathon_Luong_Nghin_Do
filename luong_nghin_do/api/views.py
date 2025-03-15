@@ -7,6 +7,8 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 import re
+import time
+import logging
 from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 
@@ -275,7 +277,102 @@ def summarize_text(request):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)      
+      
+@csrf_exempt
+def chat_with_ai(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid request method"}, status=400)
 
+    try:
+        data = json.loads(request.body)
+        user_id = data.get("idUser")
+        chu_de_id = data.get("idChuDe")
+        user_message = data.get("message", "").strip()
+
+        if not user_id or not chu_de_id or not user_message:
+            return JsonResponse({"error": "Vui lòng nhập idUser, idChuDe và tin nhắn!"}, status=400)
+
+        # 📌 Lấy chủ đề
+        try:
+            chu_de = ChuDe.objects.get(id=chu_de_id)
+        except ChuDe.DoesNotExist:
+            return JsonResponse({"error": "Chủ đề không tồn tại"}, status=404)
+
+        # 📌 Tạo hoặc lấy thread ID
+        danh_gia, created = DanhGia.objects.get_or_create(
+            idUser_id=user_id,
+            idChuDe_id=chu_de_id,
+            defaults={"idThread": None}
+        )
+
+        if danh_gia.idThread is None:
+            # 🔹 Tạo thread mới
+            thread = client.beta.threads.create()
+            danh_gia.idThread = thread.id
+            danh_gia.save()
+
+            # 🏷 Gửi tin nhắn SYSTEM với nội dung chủ đề
+            context_message = f"""
+            Bạn là một gia sư thông minh, hỗ trợ sinh viên về chủ đề: {chu_de.name_chu_de}.
+            Nội dung chủ đề: {chu_de.noi_dung}
+
+            ✅ Trả lời NGẮN GỌN, tối đa 2-3 câu.
+            ✅ Không lan man, chỉ nói về chủ đề này.
+            ✅ Nếu câu hỏi nằm ngoài phạm vi chủ đề, hãy từ chối trả lời.
+            """
+
+            client.beta.threads.messages.create(
+                thread_id=thread.id,
+                role="system",
+                content=context_message
+            )
+
+        thread_id = danh_gia.idThread  # 📌 Lấy thread_id hiện tại
+
+        # 📌 Gửi tin nhắn của người dùng
+        client.beta.threads.messages.create(
+            thread_id=thread_id,
+            role="user",
+            content=user_message
+        )
+
+        # 📌 Chạy Assistant với giới hạn nội dung
+        run = client.beta.threads.runs.create(
+            thread_id=thread_id,
+            assistant_id=settings.OPENAI_ASSISTANT_ID,
+            instructions=f"Chỉ trả lời trong phạm vi chủ đề '{chu_de.name_chu_de}'. Không lan man."
+        )
+
+        # ⏳ Chờ phản hồi từ AI
+        while run.status in ["queued", "in_progress"]:
+            time.sleep(1)
+            run = client.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run.id)
+
+        if run.status == "failed":
+            error_message = run.last_error.message if hasattr(run.last_error, "message") else "Không có chi tiết lỗi."
+            return JsonResponse({"error": f"AI không thể xử lý yêu cầu! Chi tiết: {error_message}"}, status=500)
+
+        # 📌 Lấy phản hồi AI
+        messages = client.beta.threads.messages.list(thread_id=thread_id)
+        ai_messages = [msg for msg in messages.data if msg.role == "assistant"]
+        if not ai_messages:
+            return JsonResponse({"error": "AI không phản hồi!"}, status=500)
+
+        ai_response = ai_messages[0].content[0].text.value  # 🏷 Chỉ lấy câu trả lời gần nhất
+
+        return JsonResponse({
+            "status": "success",
+            "thread_id": thread_id,
+            "response": ai_response
+        }, json_dumps_params={'ensure_ascii': False})
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Dữ liệu JSON không hợp lệ"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+      
 from rest_framework import viewsets
 from .models import UserDetail, ChuDe, File, DanhGia
 from .serializers import UserDetailSerializer, ChuDeSerializer, FileSerializer, DanhGiaSerializer
