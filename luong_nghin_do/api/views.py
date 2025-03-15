@@ -304,13 +304,14 @@ def chat_with_ai(request):
         danh_gia, created = DanhGia.objects.get_or_create(
             idUser_id=user_id,
             idChuDe_id=chu_de_id,
-            defaults={"idThread": None}
+            defaults={"idThread": None, "soCauHoi": 0}  # ➜ Khởi tạo số câu hỏi là 0
         )
 
         if danh_gia.idThread is None:
             # 🔹 Tạo thread mới
             thread = client.beta.threads.create()
             danh_gia.idThread = thread.id
+            danh_gia.soCauHoi = 0  # Reset số câu hỏi
             danh_gia.save()
 
             # 🏷 Gửi tin nhắn SYSTEM với nội dung chủ đề
@@ -321,6 +322,12 @@ def chat_with_ai(request):
             ✅ Trả lời NGẮN GỌN, tối đa 2-3 câu.
             ✅ Không lan man, chỉ nói về chủ đề này.
             ✅ Nếu câu hỏi nằm ngoài phạm vi chủ đề, hãy từ chối trả lời.
+            
+            📌 Sau khi sinh viên hỏi 4 câu, hãy đưa ra nhận xét:
+            - Điểm mạnh trong câu trả lời của sinh viên.
+            - Nội dung còn yếu cần cải thiện.
+            - Mức độ tiến bộ so với trước.
+            - Động viên và hướng dẫn cách cải thiện.
             """
 
             client.beta.threads.messages.create(
@@ -331,12 +338,35 @@ def chat_with_ai(request):
 
         thread_id = danh_gia.idThread  # 📌 Lấy thread_id hiện tại
 
-        # 📌 Gửi tin nhắn của người dùng
-        client.beta.threads.messages.create(
-            thread_id=thread_id,
-            role="user",
-            content=user_message
-        )
+        # 📌 Kiểm tra số câu hỏi để quyết định có nhận xét hay không
+        if danh_gia.soCauHoi >= 4:
+            # 🎯 Yêu cầu AI đánh giá sinh viên
+            feedback_message = """
+            Đánh giá tổng quan sau 4 câu hỏi:
+            - Điểm mạnh trong câu trả lời của sinh viên.
+            - Nội dung còn yếu cần cải thiện.
+            - Mức độ tiến bộ so với trước.
+            - Động viên và hướng dẫn cách cải thiện.
+            """
+            
+            client.beta.threads.messages.create(
+                thread_id=thread_id,
+                role="user",
+                content=feedback_message
+            )
+
+            danh_gia.soCauHoi = 0  # 🔄 Reset số câu hỏi sau khi đánh giá
+            danh_gia.save()
+        else:
+            # 📌 Gửi tin nhắn của người dùng
+            client.beta.threads.messages.create(
+                thread_id=thread_id,
+                role="user",
+                content=user_message
+            )
+
+            danh_gia.soCauHoi += 1  # ➕ Tăng số câu hỏi
+            danh_gia.save()
 
         # 📌 Chạy Assistant với giới hạn nội dung
         run = client.beta.threads.runs.create(

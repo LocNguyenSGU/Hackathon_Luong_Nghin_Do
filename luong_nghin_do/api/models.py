@@ -36,6 +36,7 @@ class DanhGia(models.Model):
     idChuDe = models.ForeignKey(ChuDe, on_delete=models.CASCADE)
     idUser = models.ForeignKey(UserDetail, on_delete=models.CASCADE)
     idThread = models.CharField(max_length=255, unique=True, null=True, blank=True) 
+    soCauHoi = models.IntegerField(default=0)  # ➜ Thêm bộ đếm số câu hỏi
     nhan_xet = models.TextField()
 
     def __str__(self):

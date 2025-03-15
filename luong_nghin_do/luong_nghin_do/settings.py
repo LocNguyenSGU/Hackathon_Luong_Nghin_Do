@@ -107,7 +107,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'hackathon',
         'USER': 'root',
-        'PASSWORD': '12345abc',
+        'PASSWORD': '',
         'HOST': 'localhost',  # Tên service trong docker-compose
         'PORT': '3306',
     }
