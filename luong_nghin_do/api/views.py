@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 from .models import UserDetail
-from .serializers import UserSerializer
+from .serializers import UserDetailSerializer
 import openai
 import json
 from django.http import JsonResponse
@@ -10,7 +10,7 @@ import re
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = UserDetail.objects.all()
-    serializer_class = UserSerializer
+    serializer_class = UserDetailSerializer
     
     # 🔹 Khởi tạo client OpenAI theo chuẩn mới nhất
 client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
