@@ -7,6 +7,8 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 import re
+from rest_framework.response import Response
+from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = UserDetail.objects.all()
@@ -159,3 +161,41 @@ class FileViewSet(viewsets.ModelViewSet):
 class DanhGiaViewSet(viewsets.ModelViewSet):
     queryset = DanhGia.objects.all()
     serializer_class = DanhGiaSerializer
+
+from rest_framework.decorators import api_view
+@api_view(['POST'])
+def check_user(request):
+    username = request.data.get('username')
+    password = request.data.get('password')
+    
+    if not username or not password:
+        return Response({'message': 'Vui lòng nhập đầy đủ username và password'}, status=400)
+    
+    user = UserDetail.objects.filter(lastName=username, password=password).first()
+    
+    if user:
+        return Response({'id': user.idUser})
+    
+    return Response({'message': 'Tài khoản không tồn tại'}, status=404)
+@api_view(['POST'])
+def register_user(request):
+    username = request.data.get('username')  # lastName sẽ đóng vai trò username
+    email = request.data.get('email')
+    password = request.data.get('password')
+
+    if not username or not email or not password:
+        return Response({'message': 'Vui lòng nhập đầy đủ username, email và password'}, status=400)
+    
+    # Kiểm tra xem email đã tồn tại chưa
+    if UserDetail.objects.filter(email=email).exists():
+        return Response({'message': 'Email đã được sử dụng'}, status=400)
+
+    # Tạo người dùng mới
+    user = UserDetail.objects.create(
+        lastName=username,  
+        firstName='a',  # Luôn là "a"
+        email=email,
+        password=password # Mã hóa mật khẩu
+    )
+
+    return Response({'message': 'Đăng ký thành công', 'id': user.idUser}, status=201)
