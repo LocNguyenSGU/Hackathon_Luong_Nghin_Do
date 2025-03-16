@@ -362,7 +362,7 @@ def chat_with_ai(request):
 
             client.beta.threads.messages.create(
                 thread_id=thread.id,
-                role="system",
+                role="assistant",
                 content=context_message
             )
 
