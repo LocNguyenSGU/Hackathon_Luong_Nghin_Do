@@ -241,7 +241,7 @@ import logging
 logger = logging.getLogger(__name__)  # 📌 Khởi tạo logger
 
 @csrf_exempt
-def summarize_text(request):
+def summarize_text_short(request):
     """
     API nhận văn bản dài từ request, gửi đến OpenAI và trả về nội dung đã được tóm tắt.
     """
@@ -258,7 +258,8 @@ def summarize_text(request):
 
         # 📌 Prompt tóm tắt văn bản + tạo tiêu đề
         prompt = f"""
-        Hãy tóm tắt nội dung sau một cách súc tích và dễ hiểu.
+        Bạn là một chuyên gia tóm tắt. 
+        Hãy tóm tắt nội dung sau đầy đủ ý chính, không bỏ qua thông tin quan trọng.
 
         Văn bản: {input_text}
 
@@ -490,3 +491,102 @@ def register_user(request):
     )
 
     return Response({'message': 'Đăng ký thành công', 'id': user.idUser}, status=201)
+
+def split_text(text, max_length=1000):
+    """
+    Chia văn bản thành các đoạn nhỏ để tránh bị cắt khi tóm tắt.
+    """
+    sentences = text.split('. ')
+    chunks, chunk = [], ""
+    for sentence in sentences:
+        if len(chunk) + len(sentence) < max_length:
+            chunk += sentence + ". "
+        else:
+            chunks.append(chunk.strip())
+            chunk = sentence + ". "
+    if chunk:
+        chunks.append(chunk.strip())
+    return chunks
+
+def summarize_chunk(text_chunk):
+    """
+    Gửi đoạn văn bản nhỏ đến OpenAI để tóm tắt.
+    """
+    prompt = f"""
+    Bạn là một chuyên gia ngôn ngữ. Hãy tóm tắt văn bản sau một cách súc tích nhưng giữ nguyên các ý chính quan trọng.
+
+    📌 **Yêu cầu:**
+    - Tóm tắt đầy đủ ý chính, không bỏ qua thông tin quan trọng.
+    - Văn phong dễ hiểu, phù hợp với người đọc phổ thông.
+    - Phải giữ nguyên cấu trúc câu quan trọng hoặc mạch ý chính.
+    - Trả về kết quả dưới dạng JSON hợp lệ với cấu trúc:
+    {{
+        "title": "Tiêu đề ngắn (3-6 từ)",
+        "summary": "Tóm tắt chính xác nội dung, không dài quá 150 từ"
+    }}
+
+    Văn bản: {text_chunk}
+    """
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",  
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=1000,  # Tăng giới hạn để tóm tắt tốt hơn
+            response_format={"type": "json_object"}
+        )
+
+        # 📌 Ghi log phản hồi
+        logger.info(f"🔹 Response từ AI: {response}")
+
+        # 📌 Lấy nội dung phản hồi JSON
+        response_data = response.choices[0].message.content
+        parsed_data = json.loads(response_data)
+
+        return parsed_data.get("title", "").strip(), parsed_data.get("summary", "").strip()
+
+    except json.JSONDecodeError:
+        logger.error("⚠️ Phản hồi từ AI không phải JSON hợp lệ!")
+        return "", "Phản hồi từ AI không hợp lệ"
+    except Exception as e:
+        logger.exception(f"⚠️ Lỗi OpenAI: {str(e)}")
+        return "", "Lỗi khi tóm tắt văn bản"
+@csrf_exempt
+def summarize_text(request):
+    """
+    API nhận văn bản dài từ request, chia nhỏ nếu cần, gửi đến OpenAI và trả về nội dung đã được tóm tắt.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid request method"}, status=400)
+
+    try:
+        # 📌 Nhận văn bản từ request
+        data = json.loads(request.body)
+        input_text = data.get("text", "").strip()
+
+        if not input_text:
+            return JsonResponse({"error": "Vui lòng nhập văn bản!"}, status=400)
+
+        # 📌 Chia nhỏ nếu quá dài
+        text_chunks = split_text(input_text, max_length=1000)
+        summaries = []
+
+        for chunk in text_chunks:
+            title, summary = summarize_chunk(chunk)
+            summaries.append(summary)
+
+        # 📌 Gộp các đoạn tóm tắt thành một đoạn hoàn chỉnh
+        final_summary = " ".join(summaries)
+
+        return JsonResponse({
+            "status": "success",
+            "title": "Tóm tắt văn bản",
+            "summary": final_summary
+        }, json_dumps_params={'ensure_ascii': False})
+
+    except json.JSONDecodeError:
+        logger.error("⚠️ Lỗi JSON từ request!")
+        return JsonResponse({"error": "Invalid JSON format"}, status=400)
+    except Exception as e:
+        logger.exception(f"⚠️ Lỗi không xác định: {str(e)}")
+        return JsonResponse({"error": str(e)}, status=500)

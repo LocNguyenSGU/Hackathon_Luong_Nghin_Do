@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import UserViewSet
-from .views import summarize_text_hierarchical, generate_exercises, summarize_text, chat_with_ai
+from .views import summarize_text_hierarchical, generate_exercises, summarize_text, chat_with_ai, summarize_text_short
 from .views import UserDetailViewSet, ChuDeViewSet, FileViewSet, DanhGiaViewSet
 from .views import check_user
 from .views import register_user
@@ -18,5 +18,6 @@ urlpatterns = [
     path('register/', register_user, name='register-user'),
     path('generate-exercise/', generate_exercises, name='generate-exercise'),
     path('summarize-text/', summarize_text, name='summarize-text'),
+    path('summarize-text-short/', summarize_text_short, name='summarize-text-short'),
     path('chat-with-ai/', chat_with_ai, name='chat-with-ai'),
 ]
