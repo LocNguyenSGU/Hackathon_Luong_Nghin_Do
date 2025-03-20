@@ -13,3 +13,4 @@ gTTS
 openai
 cloudinary
 django-cors-headers
+coverage

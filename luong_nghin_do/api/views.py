@@ -211,6 +211,7 @@ def generate_exercises(request):
             {{
               "type": "short_answer",
               "question": "Học máy là gì?"
+              "correct_answer": "Đáp án đúng"
             }}
             ```
             Chỉ trả về JSON hợp lệ.
@@ -496,15 +497,21 @@ def split_text(text, max_length=1000):
     """
     Chia văn bản thành các đoạn nhỏ để tránh bị cắt khi tóm tắt.
     """
+    if not text.strip():
+        return []
+
     sentences = text.split('. ')
     chunks, chunk = [], ""
-    for sentence in sentences:
-        if len(chunk) + len(sentence) < max_length:
-            chunk += sentence + ". "
+    for i, sentence in enumerate(sentences):
+        # Thêm dấu chấm nếu không phải câu cuối cùng do split đã loại bỏ
+        if i < len(sentences) - 1:
+            sentence += "."
+        if len(chunk) + len(sentence) + 1 <= max_length:
+            chunk += sentence + " "
         else:
             chunks.append(chunk.strip())
-            chunk = sentence + ". "
-    if chunk:
+            chunk = sentence + " "
+    if chunk.strip():
         chunks.append(chunk.strip())
     return chunks
 
@@ -590,3 +597,4 @@ def summarize_text(request):
     except Exception as e:
         logger.exception(f"⚠️ Lỗi không xác định: {str(e)}")
         return JsonResponse({"error": str(e)}, status=500)
+    
